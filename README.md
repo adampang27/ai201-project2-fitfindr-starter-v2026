@@ -59,24 +59,32 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:**  Searches through `listings.json` for items matching a description and allows for tuning.
+- **Inputs:**  
+    - `description` : str ; keywords of what the user wants  
+    - `size`: str ; optional case-insensitive filter  
+    -    `max_price` : float ; inclusive price filter 
+- **Returns:** : List[dict[str, str]] : list of matching dicts 
+- **When it has nothing:** empty list : []
 
 ### `suggest_outfit`
 
-- **What it does:**
+- **What it does:** Calls the model through `generate()` and suggests an outfit based on the parameters
 - **Inputs:**
-- **Returns:**
+  - `new_item` : dict ; the item the user is considering
+  - `wardrobe` : dict[`items`,list] ; wardrobe dict with `items` key holding a list of items
+- **Returns:** str ; non-empty string with outfit suggestions 
 - **When it has nothing:**
 
+  - If wardrobe is empty: return general styling advice
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Creates a randomized post for an outfit through a model call. Mentions the item, price, and platform. 
+- **Inputs:** 
+   - `outfit`: str ; outfit suggestion string from `suggest_outfit()`   
+   - `new_item`: dict; listing dict for the item
+- **Returns:** str ; two to four sentcence long caption
+- **When it has nothing:** str ; descriptive message 
 
 ---
 

@@ -101,7 +101,7 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If `search_listings` returns an empty list, set `session["error"]` telling the user to try different keywords, size, or budget and stop. Otherwise, save the first result in `session["selected_item"]`, call `suggest_outfit` with that item and `session["wardrobe"]`, and save its response in `session["outfit_suggestion"]`.
 
 **Where it lives:** `agent.py::run_agent`
 

@@ -25,78 +25,45 @@ Given a query that matches at least one listing, the agent completes all three
 tool calls and returns a fit card — in at least 4 of 5 tries.
 
 **Why this target:**
-<!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
-     "my search is a plain keyword match and some phrasings will miss" is a
-     real answer. -->
-
----
-
+I plan to use keyword matching, so some ways of describing an item might miss a relevant listing. I’m aiming for 4 of 5 successful runs.
 ## 2. An impossible query stops before the second tool
 
 Given a query that matches no listings, the agent stops before calling
 `suggest_outfit` and returns a message naming what to change — 5 of 5 tries.
 
 **Why this target:**
-<!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
-     about this path? -->
+Checking for an empty list does not depend on the model. The agent should stop and give a useful message every time, so 5 of 5.
 
 ---
 
 ## 3. Something about state
 
-<!-- YOU WRITE THIS ONE.
-
-     How would you know that the item your search found is the same item the
-     next tool received? Name something countable or observable.
-
-     This is the criterion people find hardest, because state failure doesn't
-     look like state failure — it looks like a tool problem. Something that
-     compares session["selected_item"] against what actually reached
-     suggest_outfit is the shape you're after. -->
+For 5 successful searches, session["selected_item"] matches the first search result and the item actually passed to suggest_outfit — 5 of 5 tries.
 
 
-
-**Why this target:**
-
-
+**Why this target:** 
+The agent is passing along an existing item, so there should be no variation. If the item changes between tools, the outfit could be based on the wrong listing.
 
 ---
 
 ## 4. Something about the fit card
 
-<!-- YOU WRITE THIS ONE.
-
-     The fit card calls a model, so the same input can produce different words
-     each time. That's not a bug — it's the nature of the tool. So what would
-     make it acceptable?
-
-     Think about what you'd actually be unhappy to see. A caption that never
-     mentions the price? Two different items producing the same opening
-     sentence? A card longer than a caption anyone would post? Any of those can
-     be turned into a number. -->
+Given the same outfit and item across 5 tries, at least 4 fit cards contain 2–4 sentences and correctly mention the item, its price, and its platform. The wording can vary.
 
 
 
 **Why this target:**
-
-
+The model may occasionally miss a formatting instruction, so I picked 4 of 5. Different wording is acceptable as long as the card stays short and gets the details right.
 
 ---
 
 ## 5. Your choice
 
-<!-- YOU WRITE THIS ONE TOO.
-
-     Pick something you actually care about getting right. Speed, the empty
-     wardrobe path, what happens when the model can't be reached, whether the
-     search respects a price ceiling — anything, as long as it names a number
-     or an observable outcome. -->
+Across 5 searches with different price limits, every returned listing costs no more than the requested maximum — 5 of 5 tries.
 
 
-
-**Why this target:**
-
-
+**Why this target:** 
+Price filtering is a direct numeric comparison and does not depend on the model. It should respect the user's budget every time
 
 ---
 

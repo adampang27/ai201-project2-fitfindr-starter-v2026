@@ -1,3 +1,6 @@
+import re
+import json
+
 """
 The three FitFindr tools.
 
@@ -9,9 +12,6 @@ can't tell which layer is lying to you.
     search_listings(description, size, max_price)  → list[dict]
     suggest_outfit(new_item, wardrobe)             → str
     create_fit_card(outfit, new_item)              → str
-
-All three are stubs right now. They run and they do nothing — that's the
-starting position and it's deliberate.
 
 ⚠️ Before you write any of them, fill in the **Tool Inventory** section of your
 README (Milestone 2). Four lines per tool: what it does, each input with its
@@ -78,9 +78,46 @@ def search_listings(
     Test it from a terminal before you move on:
         python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
     """
-    # TODO: replace this with your implementation
-    return []
+    listings = load_listings()
+    keywords = set(re.findall(r"\w+", description.casefold())) # Extracts words and keeps unique words
+    ranked = []
 
+    for listing in listings:
+
+        # If the listing exceeded the budget
+        if max_price is not None and listing["price"] > max_price:
+            continue
+
+        # Size matching
+        if size is not None:
+            # Compare sizes ignoring case and extra spaces
+            requested = size.strip().casefold()
+            label = listing["size"].split("(", 1)[0].strip().casefold()
+            alternatives = [part.strip() for part in label.split("/")]
+
+            if requested != label and requested not in alternatives:
+                continue
+
+        # Combining the listing's fields into one string
+        searchable_text = " ".join([
+            listing["title"],
+            listing["description"],
+            " ".join(listing["style_tags"]),
+        ])
+        # Count distinct words shared by query and listing
+        item_words = set(re.findall(r"\w+", searchable_text.casefold()))
+        score = len(keywords & item_words) # More shared words mean higher score
+
+        if score > 0:
+            ranked.append((score, listing))
+
+    # Sort by score and return the listing dicts.
+    ranked.sort(key=lambda pair: pair[0], reverse=True)
+
+    return [
+        listing
+        for score, listing in ranked[:config.SEARCH_RESULT_LIMIT]
+    ]
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
 
@@ -112,8 +149,14 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    prompt = (
+        "Suggest one or two outfits around the new item, using specific pieces "
+        "from the supplied wardrobe. Name the pieces and explain why they work "
+        "together.\n"
+        f"New item: {json.dumps(new_item)}\n"
+        f"Wardrobe items: {json.dumps(wardrobe['items'])}"
+    )
+    return generate(prompt)
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
@@ -152,5 +195,11 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    prompt = (
+        "Write a casual fit card in 2–4 sentences for this item and outfit. "
+        "Mention the item's exact title, its price in dollars, and its platform. "
+        "Describe the outfit's vibe and return only the caption.\n"
+        f"Item: {json.dumps(new_item)}\n"
+        f"Outfit: {outfit}"
+    )
+    return generate(prompt)

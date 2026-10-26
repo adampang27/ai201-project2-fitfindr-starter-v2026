@@ -1,0 +1,47 @@
+$ python mcp_client.py
+Asking mcp_server.py what it offers…
+
+  search_listings
+    
+Search thrift listings using description keywords.
+Optionally filter by size and maximum price in dollars.
+Returns matching listing dicitonaries, or an empty list.
+
+    - description: string
+    - size: string  (optional)
+    - max_price: number  (optional)
+Exit code: 0
+
+$ Local checks (model responses mocked)
+{'description': 'graphic tee', 'max_price': 24} -> 4 results; direct and MCP lists match: PASS
+{'description': 'designer ballgown', 'size': 'XXS', 'max_price': 5} -> 0 results; direct and MCP lists match: PASS
+Order: search_listings -> suggest_outfit -> create_fit_card: PASS
+Selected item and outfit text were passed through: PASS
+Empty search stopped before the model tools: PASS
+Exit code: 0
+
+
+$ AI201_CACHE=0 python app.py ask 'graphic tee'
+
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Outfit:   Here is a complete outfit built around your new Y2K Butterfly Baby Tee:
+
+### The Outfit: Y2K Streetwear Contrast
+
+*   **New Item:** Y2K Baby Tee — Butterfly Print (`lst_002`)
+*   **Bottoms:** Baggy straight-leg jeans, dark wash (`w_001`)
+*   **Outerwear:** Vintage black denim jacket (`w_006`)
+*   **Shoes:** Chunky white sneakers (`w_007`)
+*   **Accessories:** Black crossbody bag (`w_010`)
+
+### Why They Work Together:
+
+*   **Proportion Play:** The baby tee is fitted and cropped, which creates a classic Y2K silhouette when paired with the high-waisted, baggy straight-leg jeans (`w_001`). This tight-on-top, loose-on-bottom contrast is a defining look of 2000s streetwear. 
+*   **Color Harmony:** The white base of the baby tee ties directly into the chunky white sneakers (`w_007`), balancing the top and bottom of the outfit while letting the pink and purple butterfly graphic pop against the dark indigo denim.
+*   **Cohesive Layers & Accessories:** Throwing on the slightly cropped vintage black denim jacket (`w_006`) adds an extra layer of vintage texture without hiding the baby tee's cropped length. Finally, the black crossbody bag (`w_010`) matches the black denim jacket to ground the look and keeps it functional for everyday wear.
+
+  Fit card: Rock that effortless 2000s streetwear vibe by pairing this Y2K Baby Tee — Butterfly Print with baggy dark-wash jeans and a vintage black denim jacket. Grab this cute tee for just $18.00 on Depop and finish the look with chunky white sneakers and a sleek crossbody bag.
+
+2 model calls this session, 1263 prompt + 391 output tokens
+Exit code: 0

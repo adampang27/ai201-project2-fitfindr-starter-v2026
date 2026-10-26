@@ -15,7 +15,8 @@ Build and test your three tools in `tools.py` first. Then come here.
 
 import config
 import trace
-from tools import search_listings, suggest_outfit, create_fit_card
+import mcp_client
+from tools import suggest_outfit, create_fit_card
 from generate import ModelUnavailable
 
 
@@ -107,10 +108,27 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     """
     session = new_session(query, wardrobe)
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
-    return session
+    # Requesting a search and saving its result
+    session["search_results"] = mcp_client.call_tool(
+        "search_listings",
+        {"description": query},
+    )
 
+    # If we don't get a matching item back
+    if not session["search_results"]:
+        session["error"] = (
+            "No matching listings. Try different keywords, size, or budget."
+        )
+        return session
+
+    session["selected_item"] = session["search_results"][0]
+    session["outfit_suggestion"] = suggest_outfit(
+        session["selected_item"], session["wardrobe"]
+    )
+    session["fit_card"] = create_fit_card(
+        session["outfit_suggestion"], session["selected_item"]
+    )
+    return session
 
 # ── running it directly ───────────────────────────────────────────────────────
 

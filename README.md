@@ -13,9 +13,6 @@
 > python app.py ask 'vintage graphic tee under $30'
 > ```
 >
-> All three tools are stubs, so that last command will do nothing useful yet.
-> That's the starting position.
->
 > **The rest of this file is your submission.** Fill it in as you go.
 
 ---
@@ -340,3 +337,18 @@ full. -->
 ---
 
 📖 **How to run this project: [RUNNING.md](RUNNING.md)**
+
+
+## Unit 4 — Milestone 1 verification
+
+`agent.py::run_agent` calls `search_listings` through `mcp_client.call_tool`, then `tools.py::suggest_outfit`, then `tools.py::create_fit_card`. Ran this on 2026-10-26. Full output is in [`results/milestone1-verification.txt`](results/milestone1-verification.txt). From `app.py::_ask_one`:
+
+```text
+$ AI201_CACHE=0 python app.py ask 'graphic tee'
+
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Fit card: Rock that effortless 2000s streetwear vibe by pairing this Y2K Baby Tee — Butterfly Print with baggy dark-wash jeans and a vintage black denim jacket. Grab this cute tee for just $18.00 on Depop and finish the look with chunky white sneakers and a sleek crossbody bag.
+
+2 model calls this session, 1263 prompt + 391 output tokens
+```

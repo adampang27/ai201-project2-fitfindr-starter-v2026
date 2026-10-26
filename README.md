@@ -224,33 +224,40 @@ Channel total off-duty grunge vibes by styling this vintage-inspired Graphic Tee
 
 ## Verdicts and Diagnoses
 
-<!-- MET or MISSED per criterion against LAST UNIT's target, plus a sentence on
-     how you decided.
-
-     Then, for every miss: which of the four places it happened — a tool, the
-     loop's branch, the session, or the model's output — AND the mechanism.
-
-     Not a diagnosis:  "The fit card was bad."
-     A diagnosis:      "The fit card criterion missed on 2 of 5 items. Both had
-                        an empty brand field. My prompt puts the brand in the
-                        first sentence, so the card opened with a blank and read
-                        like a fragment. The tool worked; the prompt assumed a
-                        field that isn't always there."
-
-     Look for a pattern. Three misses on the same tool is one problem, not
-     three. -->
-
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | Three-tool completion | 4 of 5 | MET (5/5) | All five traces show the three calls and a nonempty fit card. |
+| 2 | Empty-search branch | 5 of 5 | MET (5/5) | All five stop before outfit suggestion and name what to change. |
+| 3 | Item consistency | 5 of 5 | MET (5/5) | The first result, selected item, and observed outfit-tool argument match in all five. |
+| 4 | Fit-card format and details | 4 of 5 | MET (5/5) | All five name the item, $24, and Depop; sentence counts are 2, 3, 2, 2, 2. |
+| 5 | Budget compliance | 5 of 5 | MISSED (2/5) | The $10, $18, and $24 trials include over-budget items; $30 and $50 pass. |
 
-**Diagnoses**
+**Budget failure — agent loop, `agent.py::run_agent`**
 
+The agent sends the whole query as `description` without extracting or passing
+`max_price`. Search therefore uses its default of no price ceiling. All five
+budget requests return the same prices: $15, $18, $24, $19, $27, and $26. The
+three misses share this cause; the two higher budgets pass because all six
+prices happen to fit.
 
+From criterion 5, try 1:
+
+```text
+[1] search_listings (via MCP)
+      in:  {'description': 'graphic tee under $10'}
+      out: 6 items: Mesh Long-Sleeve Top — Black, Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style … +3 more
+```
+
+Direct checks of `tools.py::search_listings` show that the numeric filter works
+when it receives the maximum:
+
+```text
+Explicit max_price=10: []
+Explicit max_price=24: [18.0, 24.0, 15.0, 19.0]
+```
+
+The next fix is to extract the budget and pass it through MCP as `max_price`.
+No criteria were revised: the budget target is measurable and the agent missed it.
 
 ---
 

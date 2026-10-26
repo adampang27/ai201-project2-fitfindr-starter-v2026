@@ -171,28 +171,53 @@ $ python -c "from tools import create_fit_card; ..."
 
 ## Run Log — Before
 
-<!-- Five criteria, five tries each, in this exact format.
+Ran `python run_eval.py --label before`: five trials for each criterion, caching
+off, 35 model calls. Targets are unchanged from `criteria.md`. Full output:
+[`results/run_2026-10-26_0315_before.md`](results/run_2026-10-26_0315_before.md).
 
-     Five, because your criteria are written out of five. Mark each try PASS
-     or FAIL, count the passes, and read that count against your target — a
-     row targeting 4 of 5 with three PASS cells is MISSED (3/5).
-
-     `python run_eval.py --label before` runs everything and writes the table
-     into results/. Paste it here and fill in the verdicts. -->
+Criterion 4 calls `create_fit_card` with the same outfit and `lst_006` each time.
+Criterion 5 runs the agent with budgets of $10, $18, $24, $30, and $50 in order.
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Three tools return a fit card | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Empty search stops before tool 2 | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Selected item matches the item passed on | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Card has 2–4 sentences, item, price, platform | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Every listing respects the requested budget | 5 of 5 | FAIL | FAIL | FAIL | PASS | PASS | MISSED (2/5) |
 
-**Real output from one try**, pasted as text, naming the file and function
-that produced it:
+**Criterion 1, try 1 — `tools.py::create_fit_card`, through `agent.py::run_agent`**
 
+```text
+Channel ultimate 2000s streetwear energy by pairing this Y2K Baby Tee — Butterfly Print with baggy dark-wash jeans and an oversized black denim jacket. Grab this nostalgic crop top for $18.00 on Depop to nail that effortless tight-top-baggy-bottom silhouette.
 ```
 
+**Criterion 2, try 1 — `agent.py::run_agent`**
+
+```text
+No matching listings. Try different keywords, size, or budget.
+```
+
+**Criterion 3, try 1 — `run_eval.py::write_report`, observing `agent.py::run_agent`**
+
+```text
+- selected_item: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+- selected item equals first result: True
+- actual suggest_outfit item equals selected item: True
+```
+
+**Criterion 4, try 1 — `tools.py::create_fit_card`**
+
+```text
+Channel total off-duty grunge vibes by styling this vintage-inspired Graphic Tee — 2003 Tour Bootleg Style with baggy dark-wash jeans and chunky white sneakers. It's the ultimate effortless streetwear look for everyday wear, available now on Depop for $24.00.
+```
+
+**Criterion 5, try 1 — `run_eval.py::write_report`, from `agent.py::run_agent`**
+
+```text
+- actual query: graphic tee under $10
+- returned prices: [15.0, 18.0, 24.0, 19.0, 27.0, 26.0]
+- requested maximum: $10
 ```
 
 ---

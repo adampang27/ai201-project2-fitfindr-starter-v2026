@@ -50,9 +50,26 @@ def run_once(scenario, use_trace=True):
     if use_trace:
         trace_module.start_trace()
 
-    record = {"error": None, "session": None, "trace": "", "crashed": None}
+    record = {"error": None, "session": None, "trace": "", "crashed": None,
+              "query": scenario["query"], "budget": scenario.get("budget")}
     try:
-        record["session"] = run_agent(scenario["query"], wardrobe)
+        if scenario["criterion"] == 4:
+            from tools import create_fit_card
+            from utils.data_loader import load_listings
+            item = next(item for item in load_listings() if item["id"] == scenario["item_id"])
+            card = create_fit_card(scenario["outfit"], item)
+            record["session"] = {"selected_item": item, "outfit_suggestion": scenario["outfit"],
+                                 "fit_card": card, "error": None}
+            trace_module.step("create_fit_card", inputs={"item": item["title"],
+                              "outfit": scenario["outfit"]}, returned=card)
+        elif scenario["criterion"] == 3:
+            from unittest.mock import patch
+            from tools import suggest_outfit
+            with patch("agent.suggest_outfit", wraps=suggest_outfit) as observed:
+                record["session"] = run_agent(scenario["query"], wardrobe)
+                record["outfit_item"] = observed.call_args.args[0] if observed.called else None
+        else:
+            record["session"] = run_agent(scenario["query"], wardrobe)
     except Exception as exc:  # noqa: BLE001 — a crash is a result worth logging
         record["crashed"] = f"{type(exc).__name__}: {exc}"
         record["traceback"] = traceback.format_exc()
@@ -95,7 +112,11 @@ def main():
 
         tries = []
         for attempt in range(1, args.tries + 1):
-            record = run_once(scenario)
+            trial = dict(scenario)
+            if "budgets" in scenario:
+                trial["budget"] = scenario["budgets"][(attempt - 1) % len(scenario["budgets"])]
+                trial["query"] = f"{scenario['query']} under ${trial['budget']}"
+            record = run_once(trial)
             tries.append(record)
 
             if record["crashed"]:
@@ -193,6 +214,15 @@ def write_report(rows, args):
                 f"- search_results: {len(session.get('search_results') or [])}",
                 "",
             ]
+            results = session.get("search_results") or []
+            lines += [f"- actual query: {record['query']}",
+                      f"- returned prices: {[item['price'] for item in results]}"]
+            if record["budget"] is not None:
+                lines.append(f"- requested maximum: ${record['budget']}")
+            if scenario["criterion"] == 3:
+                lines += [f"- selected item equals first result: {bool(results) and item == results[0]}",
+                          f"- actual suggest_outfit item equals selected item: {bool(item) and record.get('outfit_item') == item}"]
+            lines.append("")
             if session.get("outfit_suggestion"):
                 lines += ["Outfit suggestion:", "", "```",
                           str(session["outfit_suggestion"]), "```", ""]

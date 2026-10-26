@@ -106,15 +106,16 @@ def run_agent(query: str, wardrobe: dict) -> dict:
       • A handler for ModelUnavailable, so a bad key produces a message rather
         than a stack trace. The import is already at the top of this file.
     """
+    trace.start_trace()
     session = new_session(query, wardrobe)
 
-    # Requesting a search and saving its result
     session["search_results"] = mcp_client.call_tool(
-        "search_listings",
-        {"description": query},
+        "search_listings", {"description": query}
     )
+    trace.step("search_listings (via MCP)", inputs={"description": query},
+               returned=session["search_results"],
+               note="empty search; stopping" if not session["search_results"] else "")
 
-    # If we don't get a matching item back
     if not session["search_results"]:
         session["error"] = (
             "No matching listings. Try different keywords, size, or budget."
@@ -122,12 +123,28 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         return session
 
     session["selected_item"] = session["search_results"][0]
-    session["outfit_suggestion"] = suggest_outfit(
-        session["selected_item"], session["wardrobe"]
-    )
-    session["fit_card"] = create_fit_card(
-        session["outfit_suggestion"], session["selected_item"]
-    )
+    try:
+        session["outfit_suggestion"] = suggest_outfit(
+            session["selected_item"], session["wardrobe"]
+        )
+        trace.step("suggest_outfit", inputs={
+            "item": session["selected_item"]["title"],
+            "wardrobe_items": len(session["wardrobe"]["items"]),
+        }, returned=session["outfit_suggestion"])
+
+        session["fit_card"] = create_fit_card(
+            session["outfit_suggestion"], session["selected_item"]
+        )
+        trace.step("create_fit_card", inputs={
+            "item": session["selected_item"]["title"],
+            "outfit": session["outfit_suggestion"],
+        }, returned=session["fit_card"])
+    except ModelUnavailable:
+        session["error"] = (
+            "The model couldn't be reached. Check GEMINI_API_KEY in .env "
+            "and your internet connection, then try again."
+        )
+
     return session
 
 # ── running it directly ───────────────────────────────────────────────────────

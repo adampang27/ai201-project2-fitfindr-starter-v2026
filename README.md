@@ -231,34 +231,55 @@ that produced it:
 
 ## Loop Trace
 
-<!-- One full run, printed step by step, with the MCP call visible in it.
-
-     `python app.py ask '...' --trace` once you've added the trace.step()
-     calls in Milestone 2.
-
-     Worth pasting BOTH the happy path and the empty-search path. The empty
-     one should be visibly shorter, because it stops. If your two traces are
-     the same length, your branch isn't working — and this is the fastest way
-     anyone will ever find that out. -->
-
-**Happy path**
-
-```
-
-```
+Ran the three failure checks on 2026-10-26 with caching off.
 
 **Empty search**
 
+```text
+$ AI201_CACHE=0 python app.py ask 'unobtainium astronaut ballgown' --trace
+No matching listings. Try different keywords, size, or budget.
+0 model calls this session
 ```
 
+**Empty wardrobe** — `tools.py::suggest_outfit` gave general styling advice:
+
+```text
+$ AI201_CACHE=0 python app.py ask 'denim jacket' --empty-wardrobe --trace
+* **Top:** Oversized white cotton t-shirt
+* **Bottoms:** High-waisted black wide-leg trousers
+* **Footwear:** Classic white leather sneakers (like Adidas Stan Smiths or Nike Air Forces)
+* **Footwear:** Chunky black combat boots (like Dr. Martens)
 ```
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
+**Model unavailable** — `agent.py::run_agent` catches `ModelUnavailable`:
 
+```text
+$ AI201_CACHE=0 python app.py ask 'argyle knit vest fall layering' --trace
+The model couldn't be reached. Check GEMINI_API_KEY in .env and your internet connection, then try again.
+```
 
+For the invalid-key check, a one-character change of the configured key was put
+in `.env`, with the environment override removed for that test process. The
+original file was restored. The request finished in 1.5 seconds.
+
+**Full trace**
+
+```text
+$ AI201_CACHE=0 python app.py ask 'graphic tee' --trace
+
+[1] search_listings (via MCP)
+      in:  {'description': 'graphic tee'}
+      out: 6 items: Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style, Mesh Long-Sleeve Top — Black … +3 more
+[2] suggest_outfit
+      in:  {'item': 'Y2K Baby Tee — Butterfly Print', 'wardrobe_items': 10}
+      out: Here is an outfit built around the new **Y2K Baby Tee — Butterfly Print**:  ### Outfit: Y2K Streetwear Contras…
+[3] create_fit_card
+      in:  {'item': 'Y2K Baby Tee — Butterfly Print', 'outfit': 'Here is an outfit built around the new **Y2K Baby Tee — …
+      out: Channel effortless Y2K streetwear energy by pairing this $18.00 Y2K Baby Tee — Butterfly Print from Depop with…
+```
+
+The full request succeeded after restoring credentials. Search still returns
+the same list through MCP; the client changes how the agent calls it.
 
 ---
 

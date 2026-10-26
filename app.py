@@ -127,7 +127,9 @@ def _ask_one(query, wardrobe, use_trace):
 
     if use_trace:
         text = trace_module.get_trace()
-        if not text:
+        if text:
+            print(text, end="\n\n")
+        else:
             print(
                 "  (--trace printed nothing. You haven't added trace.step() calls to\n"
                 "   run_agent() yet — that's unit 4, Milestone 2.)\n"

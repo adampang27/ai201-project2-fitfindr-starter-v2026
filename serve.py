@@ -112,7 +112,11 @@ def ask():
     """
     g.ask_started = perf_counter()
     g.ask_timestamp = datetime.now(timezone.utc).isoformat()
-    payload = request.get_json(silent=True) or {}
+    parsed_body = request.get_json(silent=True)
+    g.ask_payload_type = (
+        type(parsed_body).__name__ if parsed_body is not None else None
+    )
+    payload = parsed_body or {}
     query = (payload.get("query") or "").strip()
     g.ask_query = query
     if not query:
@@ -173,7 +177,10 @@ def log_ask_response(response):
 
     record = {
         "timestamp": g.ask_timestamp,
-        "query": g.get("ask_query"),
+        "input": {
+            "payload_type": g.get("ask_payload_type"),
+            "query": g.get("ask_query"),
+        },
         "status_code": response.status_code,
         "output": output,
         "duration_seconds": duration_seconds,

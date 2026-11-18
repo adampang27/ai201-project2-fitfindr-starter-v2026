@@ -408,9 +408,61 @@ $ AI201_CACHE=0 python app.py ask 'graphic tee'
 
 ## Capstone
 
-I plan to enhance the `/ask` endpoint inside of `serve.py` to have informative logging. The existing `/ask` route will be ran locally and used to log how long it takes for a request to process and what happened to the request. The logs would also include if the requested payload matched the desired input of a JSON seralized dictionary to see if the issue came from origination. The outcome of the HTTP method would be beneficial to log, as if to see if there was any listings and the related HTTP response code. For example, the system could return HTTP 200 OK while FitFindr didn't find any listings. 
+**What This Extends**
 
-I am leaving out changes to FitFindr's search or reccomendations, as tweaking the logic behind it could change scope beyond what would be timely and manageable. It would be beneificial to see how logical changes could improve the quality and timeliness of the response, but that would be for a future implementation. Network diagnostics like measuring how slow network connections would affect `/ask` handling a request would go deeper into networking, and beyond what is relevant.
+I added logging to the `/ask` endpoint in `serve.py`. The log shows what type
+of input came in, how long the request took to process, and what happened to
+it. I wanted to see both the HTTP status and the result from FitFindr. For
+example, the system can return HTTP 200 OK even when FitFindr didn't find any
+listings.
 
-#### The Shape
-Shape A - Path B (local with logs)
+**The Shape**
+
+I chose Shape A to make the existing service easier to run and inspect.
+I left changes to FitFindr's search and recommendations for a future
+implementation because changing that logic would add more work than I could
+test in this capstone. I also left out diagnosing slow network connections.
+
+**Running It**
+
+I chose Path B (local with logs). [RUNNING.md](RUNNING.md#running-it-somewhere-else--unit-9)
+has the setup and start command. The clean-checkout test used commit
+`378007e` and Python 3.13.12. The health check returned HTTP 200, a matching
+query returned a fit card, and a request with no query returned HTTP 400
+and left a log record.
+
+**Instrumentation**
+
+I wanted one place to look when a request ended earlier than I expected.
+`serve.py` writes one JSON line per `/ask` response with a UTC `timestamp`,
+the `input` (parsed payload type and query), the HTTP `status_code`, the
+`output` (fit card or error), and `duration_seconds`.
+
+These are the ten matching requests used for timing, followed by a request
+that returned HTTP 400 because the query was missing. The full set is in
+[the request log](results/unit9-before-requests.jsonl).
+
+```jsonl
+{"timestamp": "2026-11-18T22:35:11.329018+00:00", "input": {"payload_type": "dict", "query": "graphic tee"}, "status_code": 200, "output": {"fit_card": "Channel ultimate early-2000s energy with this Y2K Streetwear Look, featuring the Y2K Baby Tee — Butterfly Print paired with baggy dark-wash jeans and a vintage black denim jacket. Grab this sweet little crop for $18.00 on Depop to nail that effortless tight-top-and-loose-bottom silhouette. Finish off the fit with chunky white sneakers and a black crossbody bag for an undeniably cool, retro vibe.", "error": null}, "duration_seconds": 3.5886246760001086}
+{"timestamp": "2026-11-18T22:35:15.306214+00:00", "input": {"payload_type": "dict", "query": "denim jacket"}, "status_code": 200, "output": {"fit_card": "Level up your streetwear game with this Denim Jacket — Light Wash, Cropped from Poshmark, priced at $42. This outfit delivers an effortless \"double denim contrast\" vibe, pairing the structured, light wash jacket with baggy dark jeans for the ultimate proportions. Finish it off with a white tank and chunky sneakers for an effortlessly cool, everyday look.", "error": null}, "duration_seconds": 2.6457655009999144}
+{"timestamp": "2026-11-18T22:35:18.329475+00:00", "input": {"payload_type": "dict", "query": "argyle knit vest"}, "status_code": 200, "output": {"fit_card": "Channel dark academia chic with this Vintage Knit Vest — Argyle Brown/Cream, available on thredUp for $25.00. Styled with wide-leg khakis and combat boots, this earthy preppy fit nails that effortless vintage-meets-grunge vibe.", "error": null}, "duration_seconds": 2.2904023060000327}
+{"timestamp": "2026-11-18T22:35:21.061381+00:00", "input": {"payload_type": "dict", "query": "graphic tee"}, "status_code": 200, "output": {"fit_card": "Channel major 2000s streetwear vibes by styling your new Y2K Baby Tee — Butterfly Print with baggy dark-wash jeans and chunky sneakers. Grab this nostalgic crop top for $18.00 on Depop to nail the ultimate tight-top-and-loose-bottom look. Finish off the fit with a vintage denim jacket and a black crossbody bag for an effortlessly cool everyday aesthetic.", "error": null}, "duration_seconds": 2.5190320470010192}
+{"timestamp": "2026-11-18T22:35:23.581729+00:00", "input": {"payload_type": "dict", "query": "denim jacket"}, "status_code": 200, "output": {"fit_card": "Score this Wrangler Denim Jacket — Light Wash, Cropped for just $42 on Poshmark. Style it for a retro streetwear vibe with a white tank, dark baggy jeans, and chunky sneakers, or lean into casual minimalism by pairing it with khaki trousers.", "error": null}, "duration_seconds": 2.574766997999177}
+{"timestamp": "2026-11-18T22:35:26.157829+00:00", "input": {"payload_type": "dict", "query": "argyle knit vest"}, "status_code": 200, "output": {"fit_card": "Channel your inner dark academia with this Vintage Knit Vest — Argyle Brown/Cream, scored on thredUp for just $25.00. Styled with wide-leg khaki trousers and edged up with black combat boots, this fit hits that perfect sweet spot between preppy and modern.", "error": null}, "duration_seconds": 2.378912696000043}
+{"timestamp": "2026-11-18T22:35:28.538018+00:00", "input": {"payload_type": "dict", "query": "graphic tee"}, "status_code": 200, "output": {"fit_card": "Channel total early-2000s energy with this effortless Y2K streetwear fit, anchored by the Y2K Baby Tee — Butterfly Print for just $18 on Depop. Paired with baggy dark-wash jeans, chunky white sneakers, and a vintage black denim jacket, this look nails the ultimate tight-top, loose-bottom proportion play.", "error": null}, "duration_seconds": 2.517755697999746}
+{"timestamp": "2026-11-18T22:35:31.057041+00:00", "input": {"payload_type": "dict", "query": "denim jacket"}, "status_code": 200, "output": {"fit_card": "Score this effortless double-denim streetwear look featuring the Denim Jacket — Light Wash, Cropped for $42.0 on Poshmark. Paired with baggy dark jeans, a crisp white tank, and chunky sneakers, this fit serves major off-duty model energy. It’s an easy, vintage-inspired outfit that hits all the right proportions.", "error": null}, "duration_seconds": 42.12510551000014}
+{"timestamp": "2026-11-18T22:36:13.185664+00:00", "input": {"payload_type": "dict", "query": "argyle knit vest"}, "status_code": 200, "output": {"fit_card": "Pair this Vintage Knit Vest — Argyle Brown/Cream from thredUp for $25.00 with wide-leg trousers and combat boots for an effortless, dark academia-inspired look. The rich earth tones and chunky knit give off total vintage prep vibes with a modern edge.", "error": null}, "duration_seconds": 3.3701836680011183}
+{"timestamp": "2026-11-18T22:36:16.557118+00:00", "input": {"payload_type": "dict", "query": "graphic tee"}, "status_code": 200, "output": {"fit_card": "Serve major early 2000s energy by styling this Y2K Baby Tee — Butterfly Print with baggy denim and chunky sneakers for the ultimate tight-on-top, loose-on-bottom streetwear silhouette. Available for just $18.00 on Depop, this cute cropped graphic tee brings effortless nostalgia to your everyday rotation.", "error": null}, "duration_seconds": 2.895805168998777}
+{"timestamp": "2026-11-18T22:35:15.301743+00:00", "input": {"payload_type": "dict", "query": ""}, "status_code": 400, "output": {"fit_card": null, "error": "Send JSON with a 'query' field, e.g. {\"query\": \"vintage graphic tee under $30\"}"}, "duration_seconds": 0.00010396899961051531}
+```
+
+**What It Costs**
+
+I used seconds per request to measure what it costs to run FitFindr locally.
+I sent ten matching requests over HTTP with the example wardrobe and the
+cache off. They all returned fit cards. I added up the `duration_seconds`
+values and divided by ten. The timer starts at `/ask` and stops when the
+response is ready, so it includes MCP and model calls, including pacing
+if the service had to wait.
+
+66.906 seconds ÷ 10 requests = **6.691 seconds per request**.

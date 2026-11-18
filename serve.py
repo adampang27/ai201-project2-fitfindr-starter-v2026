@@ -27,26 +27,29 @@ web server has to be. The reason is worth reading before you deploy: see the
 note above `_one_at_a_time` below — it also decides which gunicorn worker you
 can use.
 
-⚠️ There is deliberately NO logging, NO timing and NO request counting in this
-file. That is unit 9's follow-along: you instrument this yourself, first, and
-then deploy it. A structured log you were handed teaches you nothing about
-what belongs in one — and the timing field is the one everybody skips.
+Each request to `/ask` writes a record to `fitfindr-requests.jsonl`.
 """
 
+import json
 import os
 import sys
 import threading
+from datetime import datetime, timezone
+from pathlib import Path
+from time import perf_counter
 
 # config first, and before anything that talks to the model: it loads your .env
 # and fixes the Windows console encoding for every module that imports it.
 import config  # noqa: F401
 
-from flask import Flask, jsonify, request
+from flask import Flask, g, jsonify, request
 
 from agent import run_agent
 from utils.data_loader import get_example_wardrobe
 
 app = Flask(__name__)
+_request_log = Path(__file__).resolve().with_name("fitfindr-requests.jsonl")
+_log_lock = threading.Lock()
 
 
 # ── one request at a time ─────────────────────────────────────────────────────
@@ -107,8 +110,11 @@ def ask():
                                                 example wardrobe the CLI uses.
     Out:  the session dict from run_agent(), as JSON.
     """
+    g.ask_started = perf_counter()
+    g.ask_timestamp = datetime.now(timezone.utc).isoformat()
     payload = request.get_json(silent=True) or {}
     query = (payload.get("query") or "").strip()
+    g.ask_query = query
     if not query:
         # 400 rather than a stack trace: the caller can act on this one.
         return jsonify({"error": "Send JSON with a 'query' field, e.g. "
@@ -150,6 +156,34 @@ def ask():
         return jsonify({"error": failure}), 500
 
     return jsonify(session)
+
+
+@app.after_request
+def log_ask_response(response):
+    """Record the response and handler time for a request to /ask."""
+    started = g.get("ask_started")
+    if started is None:
+        return response
+
+    duration_seconds = perf_counter() - started
+    result = response.get_json(silent=True)
+    output = {"error": response.status}
+    if isinstance(result, dict):
+        output = {"fit_card": result.get("fit_card"), "error": result.get("error")}
+
+    record = {
+        "timestamp": g.ask_timestamp,
+        "query": g.get("ask_query"),
+        "status_code": response.status_code,
+        "output": output,
+        "duration_seconds": duration_seconds,
+    }
+    try:
+        with _log_lock, _request_log.open("a", encoding="utf-8") as log:
+            log.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except OSError:
+        app.logger.exception("Could not write the FitFindr request log")
+    return response
 
 
 if __name__ == "__main__":

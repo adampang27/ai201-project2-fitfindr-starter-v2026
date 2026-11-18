@@ -15,6 +15,9 @@ env/
 # Cached model responses
 .cache/
 
+# Local HTTP log. Selected capstone evidence is saved under results/.
+/fitfindr-requests.jsonl
+
 # OS noise
 .DS_Store
 Thumbs.db

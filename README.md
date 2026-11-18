@@ -466,3 +466,93 @@ response is ready, so it includes MCP and model calls, including pacing
 if the service had to wait.
 
 66.906 seconds ÷ 10 requests = **6.691 seconds per request**.
+
+**Run Log and Verdicts**
+
+I ran three batches on the same checkout with `AI201_CACHE=0`. Each batch
+had a matching query, a query with no listings, `{}`, a nonempty JSON array,
+and an empty request body, in that order. The matching queries were `graphic
+tee`, `denim jacket`, and `argyle knit vest`.
+
+| Criterion | Target | Trial 1 | Trial 2 | Trial 3 | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| 1. Payload type | Object, array, and empty body are recorded as `dict`, `list`, and no parsed value | `dict` / `list` / `null` | `dict` / `list` / `null` | `dict` / `list` / `null` | MET |
+| 2. Request duration | Timer covers the handler through response preparation, with a nonnegative duration for both a match and a missing query | 3.589 s / 0.000104 s | 2.646 s / 0.000086 s | 2.290 s / 0.000101 s | MET |
+| 3. HTTP status | Each logged status matches the caller's response | 200 / 200 / 400 / 500 / 400 matched | 200 / 200 / 400 / 500 / 400 matched | 200 / 200 / 400 / 500 / 400 matched | MET |
+| 4. FitFindr result | Logged fit card and no-listings error match their HTTP responses | Both matched | Both matched | Both matched | MET |
+| 5. Intermediate outputs | A known match with the example wardrobe returns search results and a nonempty outfit suggestion | 6 listings, suggestion present | 8 listings, suggestion present | 3 listings, suggestion present | MET |
+
+I checked the timer placement in `serve.py`. `ask()` starts the timer before
+parsing the body, and `log_ask_response()` reads it after Flask has a response.
+The JSON array returned HTTP 500 in all three trials, and each log record
+showed `list` and status `500`.
+
+The [request log](results/unit9-before-requests.jsonl) and
+[captured HTTP responses](results/unit9-before-responses.jsonl) are in the
+same request order. Here is one piece of output for each check.
+
+1. **Payload type.** The first array request, logged by `serve.py::log_ask_response()`.
+
+   ```json
+   {"timestamp": "2026-11-18T22:35:15.302935+00:00", "input": {"payload_type": "list", "query": null}, "status_code": 500, "output": {"error": "500 INTERNAL SERVER ERROR"}, "duration_seconds": 0.0013390820004133275}
+   ```
+
+2. **Request duration.** The second missing-query response, logged by `serve.py::log_ask_response()`.
+
+   ```json
+   {"timestamp": "2026-11-18T22:35:18.325826+00:00", "input": {"payload_type": "dict", "query": ""}, "status_code": 400, "output": {"fit_card": null, "error": "Send JSON with a 'query' field, e.g. {\"query\": \"vintage graphic tee under $30\"}"}, "duration_seconds": 8.61589996929979e-05}
+   ```
+
+3. **HTTP status.** `serve.py::ask()` returned HTTP 400 for the third missing-query request. `serve.py::log_ask_response()` recorded the same code.
+
+   ```json
+   {"timestamp": "2026-11-18T22:35:21.057680+00:00", "input": {"payload_type": "dict", "query": ""}, "status_code": 400, "output": {"fit_card": null, "error": "Send JSON with a 'query' field, e.g. {\"query\": \"vintage graphic tee under $30\"}"}, "duration_seconds": 0.00010068899973703083}
+   ```
+
+4. **FitFindr result.** The first query with no listings, logged by `serve.py::log_ask_response()`. The `error` matches the response from `serve.py::ask()`.
+
+   ```json
+   {"timestamp": "2026-11-18T22:35:14.919143+00:00", "input": {"payload_type": "dict", "query": "unobtainium astronaut ballgown"}, "status_code": 200, "output": {"fit_card": null, "error": "No matching listings. Try different keywords, size, or budget."}, "duration_seconds": 0.38136131099963677}
+   ```
+
+5. **Intermediate outputs.** The first returned listing and full outfit suggestion from the first matching response. `agent.py::run_agent()` produced these fields, and `serve.py::ask()` returned them.
+
+   ```json
+   {
+     "search_results": [
+       {
+         "brand": null,
+         "category": "tops",
+         "colors": [
+           "white",
+           "pink",
+           "purple"
+         ],
+         "condition": "excellent",
+         "description": "Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.",
+         "id": "lst_002",
+         "platform": "depop",
+         "price": 18,
+         "size": "S/M",
+         "style_tags": [
+           "y2k",
+           "vintage",
+           "graphic tee",
+           "cottagecore"
+         ],
+         "title": "Y2K Baby Tee — Butterfly Print"
+       }
+     ],
+     "outfit_suggestion": "Here is a stylish outfit built around the new **Y2K Baby Tee — Butterfly Print**:\n\n### **The Y2K Streetwear Look**\n* **New Item:** Y2K Baby Tee — Butterfly Print (`lst_002`)\n* **Bottoms:** Baggy straight-leg jeans, dark wash (`w_001`)\n* **Outerwear:** Vintage black denim jacket (`w_006`)\n* **Shoes:** Chunky white sneakers (`w_007`)\n* **Accessories:** Black crossbody bag (`w_010`)\n\n### **Why They Work Together:**\n* **Proportion Play:** The baby tee is fitted and cropped, which creates a classic Y2K silhouette when paired with the high-waisted, baggy dark wash jeans (`w_001`). This tight-top-and-loose-bottom contrast is a signature look of the era.\n* **Cohesive Aesthetic:** The vintage black denim jacket (`w_006`) leans into the retro streetwear vibe of the baby tee while adding a cool, slightly edgy layer for cooler weather. \n* **Tying It All Together:** The chunky white sneakers (`w_007`) pick up the white base of the baby tee to keep the color palette grounded, and the black crossbody bag (`w_010`) matches the dark tones of the jeans and jacket for an effortlessly put-together finish."
+   }
+   ```
+
+**How I Used AI**
+
+I wrote down what I wanted to see in the logs and used AI to help write the
+criteria. For example, I wanted to see if FitFindr found any listings, since
+the request can return HTTP 200 OK either way.
+
+I used AI to add the logging in `serve.py` and run the tests. I also used it
+to check if the steps in `RUNNING.md` worked from a fresh copy of the repo.
+I wanted the responses and logs from the tests so I could see if they matched.

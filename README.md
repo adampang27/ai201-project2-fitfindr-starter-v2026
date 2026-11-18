@@ -405,3 +405,12 @@ $ AI201_CACHE=0 python app.py ask 'graphic tee'
 
 2 model calls this session, 1263 prompt + 391 output tokens
 ```
+
+## Capstone
+
+I plan to enhance the `/ask` endpoint inside of `serve.py` to have informative logging. The existing `/ask` route will be ran locally and used to log how long it takes for a request to process and what happened to the request. The logs would also include if the requested payload matched the desired input of a JSON seralized dictionary to see if the issue came from origination. The outcome of the HTTP method would be beneficial to log, as if to see if there was any listings and the related HTTP response code. For example, the system could return HTTP 200 OK while FitFindr didn't find any listings. 
+
+I am leaving out changes to FitFindr's search or reccomendations, as tweaking the logic behind it could change scope beyond what would be timely and manageable. It would be beneificial to see how logical changes could improve the quality and timeliness of the response, but that would be for a future implementation. Network diagnostics like measuring how slow network connections would affect `/ask` handling a request would go deeper into networking, and beyond what is relevant.
+
+#### The Shape
+Shape A - Path B (local with logs)

@@ -98,3 +98,51 @@ Price filtering is a direct numeric comparison and does not depend on the model.
      A number you missed stays where it is, gets diagnosed, and gets a fix
      attempted. That's where the points are.
      ───────────────────────────────────────────────────────────────────────── -->
+
+## Unit 9 acceptance criteria
+
+### 1. The log shows what type of input came in
+
+I should be able to see what type `request.get_json()` gave back before the
+handler falls back to an empty dictionary. In the log, a JSON object should
+show up as a dictionary, a JSON array as a list, and an empty body as having
+no parsed value.
+
+I only need the type for this check. It helps me see whether the input came
+in the way `/ask` expects.
+
+### 2. The log shows how long the request took
+
+Timing should start when `/ask` is called and stop when the response is ready.
+I should be able to find both timing points in the code and see a duration of
+zero seconds or more in the log for a successful request and for a request
+that gets rejected because the query is missing.
+
+I want to be able to measure how long the workflow takes, even when it ends
+early with an error.
+
+### 3. The log shows the HTTP status code
+
+The status code in the log should match the code the caller received for
+each request I check.
+
+I want to be able to look back at how the request ended without having to
+keep the original HTTP response open.
+
+### 4. The log shows what FitFindr returned
+
+For a query that finds a match and one that finds no listings, the log
+should agree with the response. It should show the fit card from the
+matching query and the error message from the query with no listings.
+
+FitFindr can return HTTP 200 even if it didn't find any listings. I want
+to see what I actually got back for the query.
+
+### 5. The response shows the intermediate tool outputs
+
+When I send a query with a known match and use the example wardrobe,
+the `/ask` response should contain at least one item in `search_results`
+and a nonempty `outfit_suggestion`.
+
+I want to see what those tools returned so I can trace how FitFindr got
+to the fit card.
